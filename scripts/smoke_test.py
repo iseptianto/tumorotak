@@ -10,7 +10,7 @@ import sys
 from pathlib import Path
 
 # Configuration
-API_BASE_URL = "https://pneumonia-on4f.onrender.com"
+API_BASE_URL = "https://tumorotak-api.onrender.com"
 TIMEOUT = 300  # 5 minutes for cold start
 
 def test_health():
@@ -46,14 +46,14 @@ def test_prediction():
     from PIL import Image
     import io
 
-    # Create a minimal test image
+    # Create a minimal test MRI image
     img = Image.new('RGB', (224, 224), color='gray')
     buf = io.BytesIO()
     img.save(buf, format='PNG')
     buf.seek(0)
 
     try:
-        files = {"file": ("test_xray.png", buf, "image/png")}
+        files = {"file": ("test_mri.png", buf, "image/png")}
         resp = requests.post(f"{API_BASE_URL}/predict", files=files, timeout=60)
 
         if resp.status_code == 200:
@@ -78,7 +78,7 @@ def test_prediction():
 
 def main():
     """Run all smoke tests."""
-    print("Starting Pneumonia Detection API Smoke Tests")
+    print("Starting Brain Tumor Detection API Smoke Tests")
     print(f"API Base URL: {API_BASE_URL}")
     print("-" * 50)
 

@@ -1,10 +1,10 @@
-# 🩺 Pneumonia Detection API & UI
+# 🧠 Brain Tumor Detection API & UI
 
-End-to-end pneumonia detection system using ResNet50 CNN deployed on Render.com with Hugging Face model hosting.
+End-to-end brain tumor detection system using CNN deployed on Render.com with Hugging Face model hosting.
 
 ## 🚀 Features
 
-- **AI-Powered Diagnosis**: ResNet50 CNN model for pneumonia detection from X-ray images
+- **AI-Powered Diagnosis**: CNN model for brain tumor detection from MRI images
 - **Real-time Processing**: Fast inference with Grad-CAM visualization
 - **Production Ready**: Deployed on Render.com with automatic scaling
 - **User-Friendly UI**: Streamlit interface with drag-and-drop upload
@@ -23,7 +23,7 @@ Returns model readiness status.
 POST /predict
 Content-Type: multipart/form-data
 
-file: <image_file>
+file: <mri_image_file>
 ```
 Returns diagnosis, confidence, processing time, and Grad-CAM heatmap.
 
@@ -32,9 +32,9 @@ Returns diagnosis, confidence, processing time, and Grad-CAM heatmap.
 POST /predict-batch
 Content-Type: multipart/form-data
 
-files: <multiple_image_files>
+files: <multiple_mri_image_files>
 ```
-Returns batch results for multiple images.
+Returns batch results for multiple MRI images.
 
 ## 🎯 Usage
 
@@ -46,17 +46,17 @@ Visit the deployed Streamlit app and upload X-ray images for instant analysis.
 import requests
 
 # Single prediction
-files = {"file": open("xray.jpg", "rb")}
-response = requests.post("https://pneumonia-on4f.onrender.com/predict", files=files)
+files = {"file": open("mri_scan.jpg", "rb")}
+response = requests.post("https://tumorotak-api.onrender.com/predict", files=files)
 result = response.json()
 
 # Result format
 {
-    "prediction": "PNEUMONIA|NORMAL",
+    "prediction": "Tumor|No Tumor",
     "confidence": 0.87,
     "processing_time_ms": 245,
     "model_accuracy": 0.96,
-    "model_version": "v2",
+    "model_version": "v1",
     "heatmap_b64": "<base64_encoded_image>"
 }
 ```
@@ -76,7 +76,7 @@ result = response.json()
 
 ### Model Hosting
 - **Platform**: Hugging Face Hub (public repo)
-- **Location**: `palawakampa/Pneumonia/pneumonia_resnet50_v2.h5`
+- **Location**: `palawakampa/tumorotak/brain_tumor.tflite`
 - **Access**: No authentication required
 
 ## 🔧 Cold Start Behavior
@@ -140,7 +140,7 @@ Tests include:
 - **Accuracy**: 96% on validation set
 - **Architecture**: ResNet50 with custom classification head
 - **Input**: 224×224 RGB images, normalized [0,1]
-- **Output**: Binary classification (Pneumonia/Normal)
+- **Output**: Binary classification (Tumor/No Tumor)
 
 ## 🔒 Security
 

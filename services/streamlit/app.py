@@ -10,8 +10,8 @@ st.set_page_config(page_title="Pneumonia Prediction Diagnosis", page_icon="🩺"
 from config_utils import get_config, get_bool, get_int, get_list, has_secrets_file
 
 # Configuration with universal getters
-FASTAPI_URL = get_config("FASTAPI_URL", "https://pneumonia-on4f.onrender.com/predict")
-FASTAPI_URL_BATCH = get_config("FASTAPI_URL_BATCH", "https://pneumonia-on4f.onrender.com/predict-batch")
+FASTAPI_URL = get_config("FASTAPI_URL", "https://tumorotak-api.onrender.com/predict")
+FASTAPI_URL_BATCH = get_config("FASTAPI_URL_BATCH", "https://tumorotak-api.onrender.com/predict-batch")
 DEBUG = get_bool("DEBUG", False)
 PORT = get_int("PORT", 8501)
 ALLOWED_ORIGINS = get_list("ALLOWED_ORIGINS", ["*"])
@@ -167,7 +167,7 @@ with result_col:
     diag_text = st.empty()
     if st.session_state.get("prediction_result"):
         pred = st.session_state["prediction_result"]["prediction"]
-        diag_class = "diagnosis-normal" if pred == "Normal" else "diagnosis-pneumonia"
+        diag_class = "diagnosis-normal" if pred == "No Tumor" else "diagnosis-pneumonia"
         diag_text.markdown(f'<span class="{diag_class}">### {pred}</span>', unsafe_allow_html=True)
     else:
         diag_text.markdown("### -")  # Default empty
@@ -206,7 +206,7 @@ with result_col:
     # Probability bar chart (only show if we have results)
     if st.session_state.get("prediction_result"):
         st.markdown("### 📊 Probability Distribution")
-        labels = st.session_state["prediction_result"].get("labels", ["Normal", "Pneumonia"])
+        labels = st.session_state["prediction_result"].get("labels", ["No Tumor", "Tumor"])
         probs = st.session_state["prediction_result"].get("probs", [0.5, 0.5])
         prob_data = {labels[i]: probs[i] for i in range(len(labels))}
         st.bar_chart(prob_data)
@@ -218,7 +218,7 @@ with result_col:
 
         # Success message
         pred = st.session_state["prediction_result"]["prediction"]
-        emoji = "🟢" if pred == "Normal" else "🔴"
+        emoji = "🟢" if pred == "No Tumor" else "🔴"
         st.success(f"{emoji} **{t['complete']}** Diagnosis: **{pred}** with **{prob*100:,.1f}%** confidence")
 
 # Add custom CSS for medical blue theme and drag-drop styling

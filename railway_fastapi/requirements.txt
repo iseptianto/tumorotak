@@ -1,0 +1,7 @@
+fastapi==0.120.4
+uvicorn==0.38.0
+numpy==1.26.4
+pillow==10.4.0
+python-multipart==0.0.20
+huggingface_hub==1.0.1
+tflite-runtime==2.14.0

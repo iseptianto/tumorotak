@@ -14,8 +14,8 @@ except ImportError:
     TFLITE_AVAILABLE = False
     print("TFLite not available - using mock model for testing")
 
-HF_REPO_ID = "palawakampa/Pneumonia"
-HF_FILENAME = "pneumonia_resnet50v2_fp16.tflite"
+HF_REPO_ID = "palawakampa/tumorotak"
+HF_FILENAME = "brain_tumor.tflite"
 ASSETS_FILENAME = "assets.json"
 
 INTERP = None
@@ -24,8 +24,8 @@ OUT_DET = None
 READY = asyncio.Event()
 MODEL_LOAD_TIME = 0.0
 MODEL_SHA = None
-LABELS = ["Normal", "Pneumonia"]
-THRESH = 0.311
+LABELS = ["No Tumor", "Tumor"]
+THRESH = 0.5
 MODEL_CONFIG = {}
 
 def preprocess(img: Image.Image, size=(224,224)):
