@@ -69,13 +69,64 @@ def infer(image: Image.Image):
     except Exception as e:
         return {"error": f"Inference failed: {str(e)}"}
 
-# Gradio Interface
-demo = gr.Interface(
-    fn=infer,
-    inputs=gr.Image(type="pil", label="Upload MRI/CT Scan"),
-    outputs=gr.JSON(label="Diagnosis Result"),
-    title="🩺 Brain Tumor Predictor (TFLite)",
-    description="""
+# Custom CSS for dark mode and styling
+css = """
+.gradio-container {
+    background: var(--background-fill-primary);
+    color: var(--body-text-color);
+}
+
+.dark .gradio-container {
+    --background-fill-primary: #1a1a1a;
+    --background-fill-secondary: #2d2d2d;
+    --body-text-color: #ffffff;
+    --body-text-color-subdued: #cccccc;
+    --border-color-primary: #444444;
+}
+
+.contact-links {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+    justify-content: center;
+}
+
+.contact-links a {
+    padding: 8px 16px;
+    border-radius: 5px;
+    text-decoration: none;
+    font-weight: bold;
+    transition: all 0.3s ease;
+}
+
+.contact-links .email-link {
+    background: #2196f3;
+    color: white;
+}
+
+.contact-links .email-link:hover {
+    background: #1976d2;
+}
+
+.contact-links .whatsapp-link {
+    background: #25d366;
+    color: white;
+}
+
+.contact-links .whatsapp-link:hover {
+    background: #128c7e;
+}
+"""
+
+# Gradio Interface with enhanced features
+with gr.Blocks(title="🩺 Brain Tumor Predictor", theme=gr.themes.Soft(), css=css) as demo:
+    gr.Markdown("# 🩺 Brain Tumor Predictor (TFLite)")
+
+    # Dark mode toggle
+    with gr.Row():
+        dark_mode = gr.Checkbox(label="🌙 Dark Mode", value=False, elem_id="dark-mode-toggle")
+
+    gr.Markdown("""
     Upload an MRI or CT scan image to predict brain tumor presence using AI.
 
     **Labels:**
@@ -85,12 +136,52 @@ demo = gr.Interface(
     **Note:** This is for demonstration purposes only. Always consult medical professionals for actual diagnosis.
 
     This Space exposes a REST API at `/api/predict/` for programmatic access.
-    """,
-    examples=[
-        ["https://huggingface.co/datasets/mishig/sample_images/resolve/main/mri-brain-tumor.jpg"]
-    ] if os.path.exists("examples") else None,
-    theme=gr.themes.Soft(),
-)
+    """)
+
+    # Main interface
+    with gr.Row():
+        with gr.Column():
+            input_image = gr.Image(type="pil", label="Upload MRI/CT Scan")
+            submit_btn = gr.Button("🔍 Analyze Image", variant="primary")
+
+        with gr.Column():
+            output_json = gr.JSON(label="Diagnosis Result")
+
+    # Contact links
+    gr.Markdown("### 📞 Contact Us")
+    with gr.Row(elem_classes=["contact-links"]):
+        gr.HTML("""
+        <a href="mailto:indraseptianto18@gmail.com?subject=Brain Tumor Predictor Inquiry" class="email-link" target="_blank">
+            📧 Email Support
+        </a>
+        <a href="https://wa.me/628983776946" class="whatsapp-link" target="_blank">
+            💬 WhatsApp Support
+        </a>
+        """)
+
+    # Submit action
+    submit_btn.click(
+        fn=infer,
+        inputs=input_image,
+        outputs=output_json
+    )
+
+    # Dark mode JavaScript
+    dark_mode.change(
+        fn=None,
+        inputs=dark_mode,
+        outputs=None,
+        js="""
+        (dark) => {
+            const container = document.querySelector('.gradio-container');
+            if (dark) {
+                container.classList.add('dark');
+            } else {
+                container.classList.remove('dark');
+            }
+        }
+        """
+    )
 
 if __name__ == "__main__":
     demo.launch()

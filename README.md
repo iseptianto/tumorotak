@@ -21,16 +21,18 @@ A machine learning model for brain tumor detection using MRI/CT scan images. Bui
 ## Usage
 
 ### Web Interface
-1. Upload an MRI/CT scan image
-2. Click "Submit" to get prediction
-3. View results with confidence scores
+1. Toggle dark mode if preferred (🌙 Dark Mode)
+2. Upload an MRI/CT scan image
+3. Click "🔍 Analyze Image" to get prediction
+4. View results with confidence scores
+5. Contact us via Email or WhatsApp for support
 
 ### REST API
 
 ```bash
 curl -X POST \
   -F "data=@/path/to/brain_scan.jpg" \
-  https://huggingface.co/spaces/YOUR_USERNAME/YOUR_SPACE_NAME/api/predict/
+  https://huggingface.co/spaces/iseptianto/brain-tumor-predictor/api/predict/
 ```
 
 **Response Format:**

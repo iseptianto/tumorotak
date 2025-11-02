@@ -10,8 +10,8 @@ st.set_page_config(page_title="Pneumonia Prediction Diagnosis", page_icon="🩺"
 from config_utils import get_config, get_bool, get_int, get_list, has_secrets_file
 
 # Configuration with universal getters
-FASTAPI_URL = get_config("FASTAPI_URL", "https://pneumonia-on4f.onrender.com/predict")
-FASTAPI_URL_BATCH = get_config("FASTAPI_URL_BATCH", "https://pneumonia-on4f.onrender.com/predict-batch")
+FASTAPI_URL = get_config("FASTAPI_URL", "https://huggingface.co/spaces/iseptianto/brain-tumor-predictor/api/predict/")
+FASTAPI_URL_BATCH = get_config("FASTAPI_URL_BATCH", "https://huggingface.co/spaces/iseptianto/brain-tumor-predictor/api/predict/")
 DEBUG = get_bool("DEBUG", False)
 PORT = get_int("PORT", 8501)
 ALLOWED_ORIGINS = get_list("ALLOWED_ORIGINS", ["*"])
