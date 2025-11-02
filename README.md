@@ -1,169 +1,66 @@
-# 🧠 Brain Tumor Detection API & UI
+# 🩺 Brain Tumor Predictor
 
-End-to-end brain tumor detection system using CNN deployed on Render.com with Hugging Face model hosting.
+A machine learning model for brain tumor detection using MRI/CT scan images. Built with TensorFlow Lite and deployed on Hugging Face Spaces.
 
-## 🚀 Features
+## Features
 
-- **AI-Powered Diagnosis**: CNN model for brain tumor detection from MRI images
-- **Real-time Processing**: Fast inference with Grad-CAM visualization
-- **Production Ready**: Deployed on Render.com with automatic scaling
-- **User-Friendly UI**: Streamlit interface with drag-and-drop upload
-- **Model Reliability**: Graceful degradation and readiness checks
+- **AI-Powered Diagnosis**: Uses deep learning to analyze MRI/CT scans
+- **Real-time Prediction**: Fast inference with TFLite optimized model
+- **REST API**: Programmatic access via `/api/predict/` endpoint
+- **Web Interface**: User-friendly Gradio interface
+- **Indonesian Labels**: Results in Bahasa Indonesia
 
-## 📋 API Endpoints
+## Model Details
 
-### Health Check
-```http
-GET /health
-```
-Returns model readiness status.
+- **Model**: Custom CNN trained on brain tumor dataset
+- **Framework**: TensorFlow Lite
+- **Input**: RGB images (224x224)
+- **Output**: Binary classification (Tumor/No Tumor)
+- **Accuracy**: ~83.36%
 
-### Single Prediction
-```http
-POST /predict
-Content-Type: multipart/form-data
-
-file: <mri_image_file>
-```
-Returns diagnosis, confidence, processing time, and Grad-CAM heatmap.
-
-### Batch Prediction
-```http
-POST /predict-batch
-Content-Type: multipart/form-data
-
-files: <multiple_mri_image_files>
-```
-Returns batch results for multiple MRI images.
-
-## 🎯 Usage
+## Usage
 
 ### Web Interface
-Visit the deployed Streamlit app and upload X-ray images for instant analysis.
+1. Toggle dark mode if preferred (🌙 Dark Mode)
+2. Upload an MRI/CT scan image
+3. Click "🔍 Analyze Image" to get prediction
+4. View results with confidence scores
+5. Contact us via Email or WhatsApp for support
 
-### API Integration
-```python
-import requests
+### REST API
 
-# Single prediction
-files = {"file": open("mri_scan.jpg", "rb")}
-response = requests.post("https://tumorotak-api.onrender.com/predict", files=files)
-result = response.json()
+```bash
+curl -X POST \
+  -F "data=@/path/to/brain_scan.jpg" \
+  https://huggingface.co/spaces/iseptianto/brain-tumor-predictor/api/predict/
+```
 
-# Result format
+**Response Format:**
+```json
 {
-    "prediction": "Tumor|No Tumor",
-    "confidence": 0.87,
-    "processing_time_ms": 245,
-    "model_accuracy": 0.96,
-    "model_version": "v1",
-    "heatmap_b64": "<base64_encoded_image>"
+  "prediction": "TUMOR OTAK",
+  "probability_tumor": 0.8765,
+  "probability_normal": 0.1235,
+  "confidence": 0.8765
 }
 ```
 
-## 🏗️ Architecture
+## Labels
 
-### Backend (FastAPI)
-- **Framework**: FastAPI with async support
-- **Model**: ResNet50 CNN from Hugging Face Hub
-- **Deployment**: Render.com with automatic HTTPS
-- **Caching**: Model cached in `/tmp` for fast restarts
+- `TIDAK TUMOR OTAK`: No brain tumor detected
+- `TUMOR OTAK`: Brain tumor detected
 
-### Frontend (Streamlit)
-- **UI**: Medical-themed interface with progress bars
-- **Features**: Drag-and-drop upload, real-time results
-- **Integration**: Direct API calls with retry logic
+## Important Notice
 
-### Model Hosting
-- **Platform**: Hugging Face Hub (public repo)
-- **Location**: `palawakampa/tumorotak/brain_tumor.tflite`
-- **Access**: No authentication required
+⚠️ **This is for demonstration purposes only.** Always consult qualified medical professionals for actual diagnosis and treatment decisions.
 
-## 🔧 Cold Start Behavior
+## Technical Details
 
-Render.com free tier has cold starts. The system handles this gracefully:
+- **Model Source**: `palawakampa/tumorotak`
+- **Model File**: `brain_tumor.tflite`
+- **Runtime**: TFLite Runtime
+- **Dependencies**: See `requirements.txt`
 
-1. **Startup**: App starts immediately, returns `{"status": "loading"}`
-2. **Model Download**: Downloads from Hugging Face Hub (~30-60 seconds)
-3. **Ready**: Returns `{"status": "ok", "model_ready": true}`
-4. **UI Handling**: Streamlit waits up to 2 minutes for readiness
+## License
 
-## 🚀 Deployment
-
-### Render.com Configuration
-
-#### API Service
-```yaml
-# render.yaml
-services:
-  - type: web
-    name: pneumonia-api
-    env: python
-    buildCommand: pip install -r requirements.txt
-    startCommand: uvicorn fastapi_app.main:app --host 0.0.0.0 --port $PORT
-    envVars:
-      - key: MODEL_REPO_ID
-        value: palawakampa/Pneumonia
-      - key: MODEL_FILENAME
-        value: pneumonia_resnet50_v2.h5
-      - key: CORS_ALLOW_ORIGINS
-        value: "*"
-```
-
-#### UI Service (Optional)
-```yaml
-  - type: web
-    name: pneumonia-ui
-    env: python
-    buildCommand: pip install -r requirements.txt
-    startCommand: streamlit run streamlit_app.py --server.port $PORT --server.address 0.0.0.0
-    envVars:
-      - key: FASTAPI_URL
-        value: https://pneumonia-api.onrender.com/predict
-```
-
-## 🧪 Testing
-
-Run smoke tests to verify deployment:
-
-```bash
-python scripts/smoke_test.py
-```
-
-Tests include:
-- Health endpoint readiness
-- Single prediction functionality
-- Response format validation
-
-## 📊 Model Performance
-
-- **Accuracy**: 96% on validation set
-- **Architecture**: ResNet50 with custom classification head
-- **Input**: 224×224 RGB images, normalized [0,1]
-- **Output**: Binary classification (Tumor/No Tumor)
-
-## 🔒 Security
-
-- CORS enabled for web interface
-- Input validation for image files
-- No sensitive data stored
-- Public model access only
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create feature branch
-3. Add tests for new functionality
-4. Ensure smoke tests pass
-5. Submit pull request
-
-## 📄 License
-
-MIT License - see LICENSE file for details.
-
-## 📞 Support
-
-For issues or questions:
-- Create GitHub issue
-- Check documentation: [Google Docs](https://docs.google.com/document/d/16kKwc9ChYLudeP3MeX18IPlnWezW-DXY9oWYZaVvy84/edit?usp=sharing)
-- Contact: [WhatsApp](https://wa.me/628983776946)
+This project is for educational and research purposes.
