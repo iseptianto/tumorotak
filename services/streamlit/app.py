@@ -4,7 +4,7 @@ import streamlit as st
 from PIL import Image
 
 # ⬇️ WAJIB: st.set_page_config HARUS jadi perintah Streamlit pertama
-st.set_page_config(page_title="Pneumonia Prediction Diagnosis", page_icon="🩺", layout="wide")
+st.set_page_config(page_title="Brain Tumor Prediction Diagnosis", page_icon="🩺", layout="wide")
 
 # Setelah set_page_config, baru import modul internal yang mungkin ada st.* di dalamnya
 from config_utils import get_config, get_bool, get_int, get_list, has_secrets_file
@@ -79,21 +79,31 @@ T = {
 with st.container():
     col_left, col_right = st.columns([7, 5], vertical_alignment="center")
     with col_left:
-        st.markdown("### 🩺 **Pneumonia Prediction Diagnosis**")
-        st.caption("Upload an X-ray/CT image to predict pneumonia using our CNN model.")
+        st.markdown("### 🩺 **Brain Tumor Prediction Diagnosis**")
+        st.caption("Upload an MRI/CT image to predict brain tumor using our CNN model.")
     with col_right:
         # Right-aligned controls in one row
-        r1, r2, r3 = st.columns([2.5, 1, 1])
+        r1, r2, r3, r4, r5 = st.columns([2, 1, 1, 1, 1])
         with r1:
-            lang = st.selectbox(" ", ["EN [English]", "ID [Indonesia]"], index=0 if st.session_state["lang"] == "EN [English]" else 1,
+            lang_options = ["🌐 English", "🌐 Indonesia"]
+            lang = st.selectbox(" ", lang_options, index=0 if st.session_state["lang"] == "EN [English]" else 1,
                                label_visibility="collapsed", key="lang_select")
-            st.session_state["lang"] = lang
+            st.session_state["lang"] = "EN [English]" if lang == "🌐 English" else "ID [Indonesia]"
         with r2:
-            docs_url = get_config("DOCS_URL", "https://docs.google.com/document/d/16kKwc9ChYLudeP3MeX18IPlnWezW-DXY9oWYZaVvy84/edit?usp=sharing")
-            st.link_button("📄", url=docs_url, help="Open API Docs", use_container_width=True)
+            docs_url = get_config("DOCS_URL", "https://docs.google.com/document/d/15T3Ozs60a6cA1eVPd_BzBVgj_p8dceJhsqd4dhcpCng/edit?usp=sharing")
+            st.link_button("📄", url=docs_url, help="Documentation", use_container_width=True)
         with r3:
-            contact_url = get_config("CONTACT_URL", "mailto:hello@palawakampa.com?subject=Pneumonia%20App")
-            st.link_button("✉️", url=contact_url, help="Contact", use_container_width=True)
+            contact_url = get_config("CONTACT_URL", "mailto:indraseptianto18@gmail.com?subject=Brain Tumor%20App")
+            st.link_button("✉️", url=contact_url, help="Email Contact", use_container_width=True)
+        with r4:
+            whatsapp_url = get_config("WHATSAPP_URL", "https://wa.me/628983776946")
+            st.link_button("💬", url=whatsapp_url, help="WhatsApp Contact", use_container_width=True)
+        with r5:
+            # Dark mode toggle
+            if "dark_mode" not in st.session_state:
+                st.session_state["dark_mode"] = False
+            dark_mode = st.toggle("🌙", value=st.session_state["dark_mode"], key="dark_mode_toggle", help="Toggle Dark Mode", label_visibility="collapsed")
+            st.session_state["dark_mode"] = dark_mode
 
 # Add header styling
 st.markdown("""
@@ -167,7 +177,7 @@ with result_col:
     diag_text = st.empty()
     if st.session_state.get("prediction_result"):
         pred = st.session_state["prediction_result"]["prediction"]
-        diag_class = "diagnosis-normal" if pred == "Normal" else "diagnosis-pneumonia"
+        diag_class = "diagnosis-normal" if pred == "Tidak Tumor Otak" else "diagnosis-tumor"
         diag_text.markdown(f'<span class="{diag_class}">### {pred}</span>', unsafe_allow_html=True)
     else:
         diag_text.markdown("### -")  # Default empty
@@ -198,7 +208,7 @@ with result_col:
     st.markdown("**🎯 Model Accuracy**")
     acc_text = st.empty()
     if st.session_state.get("prediction_result"):
-        model_acc = st.session_state["prediction_result"].get("model_accuracy", 0.85)
+        model_acc = st.session_state["prediction_result"].get("model_accuracy", 0.8336)
         acc_text.markdown(f'<span class="metric-value">### {model_acc*100:,.1f}%</span>', unsafe_allow_html=True)
     else:
         acc_text.markdown("### -")  # Default empty
@@ -206,7 +216,7 @@ with result_col:
     # Probability bar chart (only show if we have results)
     if st.session_state.get("prediction_result"):
         st.markdown("### 📊 Probability Distribution")
-        labels = st.session_state["prediction_result"].get("labels", ["Normal", "Pneumonia"])
+        labels = st.session_state["prediction_result"].get("labels", ["Tidak Tumor Otak", "Tumor Otak"])
         probs = st.session_state["prediction_result"].get("probs", [0.5, 0.5])
         prob_data = {labels[i]: probs[i] for i in range(len(labels))}
         st.bar_chart(prob_data)
@@ -218,7 +228,7 @@ with result_col:
 
         # Success message
         pred = st.session_state["prediction_result"]["prediction"]
-        emoji = "🟢" if pred == "Normal" else "🔴"
+        emoji = "🟢" if pred == "Tidak Tumor Otak" else "🔴"
         st.success(f"{emoji} **{t['complete']}** Diagnosis: **{pred}** with **{prob*100:,.1f}%** confidence")
 
 # Add custom CSS for medical blue theme and drag-drop styling
@@ -247,7 +257,7 @@ st.markdown("""
         color: #4caf50;
         font-weight: bold;
     }
-    .diagnosis-pneumonia {
+    .diagnosis-tumor {
         color: #f44336;
         font-weight: bold;
     }
@@ -348,7 +358,7 @@ if go:
                 data = resp.json()
                 pred = data["prediction"]
                 prob = float(data["confidence"])
-                labels = data.get("labels", ["Normal", "Pneumonia"])
+                labels = data.get("labels", ["Tidak Tumor Otak", "Tumor Otak"])
                 probs = data.get("probs", [0.5, 0.5])
                 model_acc = data.get("model_accuracy", 0.85)
 
