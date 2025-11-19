@@ -87,7 +87,7 @@ async def boot():
 
         MODEL_LOAD_TIME = time.time() - start_time
         READY.set()
-        print(".2f")
+        print(f"Model loaded successfully in {MODEL_LOAD_TIME:.2f}s")
 
     except Exception as e:
         print(f"Model loading failed: {e}")
@@ -120,7 +120,7 @@ def health():
     return {
         "status": "ok" if READY.is_set() else "loading",
         "model_loaded": READY.is_set(),
-        "model_load_time": ".2f",
+        "model_load_time": f"{MODEL_LOAD_TIME:.2f}",
         "tflite_available": TFLITE_AVAILABLE
     }
 
@@ -141,6 +141,7 @@ def model_meta():
         "tflite_sha": MODEL_SHA or "unknown",
         "threshold": THRESH,
         "model_config": MODEL_CONFIG,
+        "model_load_time": f"{MODEL_LOAD_TIME:.2f}s",
         "version": "1.2.0"
     }
 

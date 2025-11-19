@@ -1,0 +1,50 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Python
+__pycache__
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.venv
+
+# IDEs
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Project specific
+notebooks/
+scripts/
+.devcontainer/
+.env/
+models/
+mlruns/
+nginx/
+observability/
+railway_fastapi/
+services/streamlit/
+services/mlflow/
+
+# Documentation
+README.md
+*.md
+
+# Docker
+docker-compose.yaml
+Dockerfile.old
+
+# Misc
+New Text Document.txt

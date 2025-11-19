@@ -1,0 +1,63 @@
+# This file specifies files that are *not* uploaded to Google Cloud
+# using gcloud. It follows the same syntax as .gitignore
+
+.gcloudignore
+.git
+.gitignore
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.venv
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Project specific - exclude services not needed for Cloud Run
+notebooks/
+scripts/
+.devcontainer/
+.env/
+models/
+mlruns/
+nginx/
+observability/
+railway_fastapi/
+services/streamlit/
+services/mlflow/
+
+# Keep only FastAPI service
+!services/fastapi/
+
+# Documentation (not needed in container)
+*.md
+!README.md
+
+# Docker files (not needed when using gcloud deploy)
+docker-compose.yaml
+Dockerfile.old
+
+# GitHub
+.github/
+
+# Test files
+test_*.py
+test_*.sh
+validate_setup.py
+
+# Misc
+New Text Document.txt

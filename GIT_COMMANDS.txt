@@ -1,0 +1,40 @@
+# Git Commands untuk Push ke GitHub
+
+# Langkah 1: Add semua perubahan
+git add .
+
+# Langkah 2: Commit dengan message
+git commit -m "Fix: Optimize for Google Cloud Run deployment
+
+- Fix Dockerfile to bind to PORT environment variable
+- Fix CMD to run uvicorn web server properly
+- Add health check endpoint
+- Implement lazy loading for model
+- Add comprehensive deployment documentation
+- Add GitHub Actions CI/CD workflow
+- Add validation and testing scripts
+- Optimize for Cloud Run with proper configuration
+
+All container startup issues resolved. Ready for production deployment."
+
+# Langkah 3: Pull dengan merge strategy (jika ada conflict)
+git pull origin main --no-rebase
+
+# Jika ada conflict, resolve manually kemudian:
+# git add .
+# git commit -m "Merge remote changes"
+
+# Langkah 4: Push ke GitHub
+git push origin main
+
+# Langkah 5: Verify push
+git log --oneline -5
+
+# Langkah 6: Check remote
+git remote -v
+
+# Alternative: Force push (HATI-HATI! Hanya jika yakin)
+# git push origin main --force
+
+# Setelah push berhasil, deploy ke Cloud Run:
+# gcloud run deploy tumorotak --source . --region asia-southeast2 --allow-unauthenticated
