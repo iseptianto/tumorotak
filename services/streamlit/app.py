@@ -9,12 +9,46 @@ st.set_page_config(page_title="Brain Tumor Prediction Diagnosis", page_icon="�
 # Setelah set_page_config, baru import modul internal yang mungkin ada st.* di dalamnya
 from config_utils import get_config, get_bool, get_int, get_list, has_secrets_file
 
-# Configuration with universal getters
-FASTAPI_URL = get_config("FASTAPI_URL", "https://huggingface.co/spaces/iseptianto/brain-tumor-predictor/api/predict/")
-FASTAPI_URL_BATCH = get_config("FASTAPI_URL_BATCH", "https://huggingface.co/spaces/iseptianto/brain-tumor-predictor/api/predict/")
+# ============================================================================
+# IMPORTANT: API_URL Configuration for Cloud Run Deployment
+# ============================================================================
+# When deploying Streamlit to Cloud Run, you MUST set the API_URL environment
+# variable to point to your FastAPI backend Cloud Run service URL.
+#
+# Example deployment command:
+#   gcloud run deploy streamlit-frontend \
+#     --image gcr.io/PROJECT_ID/streamlit:latest \
+#     --set-env-vars API_URL=https://fastapi-backend-xxxxx-uc.a.run.app
+#
+# For local testing, set API_URL=local to use http://localhost:8080
+# ============================================================================
+
+# Get API_URL from environment with fallback handling
+API_BASE = os.environ.get("API_URL", "")
+
+# Handle special "local" value for local development
+if API_BASE == "local":
+    API_BASE = "http://localhost:8080"
+    st.info("🔧 Running in LOCAL mode - connecting to http://localhost:8080")
+elif not API_BASE:
+    # Fallback to Hugging Face for backward compatibility
+    API_BASE = "https://huggingface.co/spaces/iseptianto/brain-tumor-predictor"
+    st.warning("⚠️ API_URL not set! Using fallback URL. Set API_URL env var for production.")
+
+# Construct full URLs
+FASTAPI_URL = f"{API_BASE}/predict" if not API_BASE.endswith("/predict") else API_BASE
+FASTAPI_URL_BATCH = f"{API_BASE}/predict/batch" if not API_BASE.endswith("/predict/batch") else API_BASE
+
+# Other configuration
 DEBUG = get_bool("DEBUG", False)
 PORT = get_int("PORT", 8501)
 ALLOWED_ORIGINS = get_list("ALLOWED_ORIGINS", ["*"])
+
+# Log configuration in debug mode
+if DEBUG:
+    st.sidebar.write("### Debug Info")
+    st.sidebar.write(f"API_BASE: {API_BASE}")
+    st.sidebar.write(f"FASTAPI_URL: {FASTAPI_URL}")
 
 def wait_until_ready(base_url, timeout=120, interval=2):
     """Wait for FastAPI backend to be ready."""

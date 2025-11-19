@@ -1,4 +1,4 @@
-# Dockerfile optimized for Google Cloud Run
+# Dockerfile optimized for Google Cloud Run - Backend (FastAPI)
 FROM python:3.10-slim
 
 WORKDIR /app
@@ -15,8 +15,8 @@ RUN python -m pip install --upgrade pip setuptools wheel \
     && pip install --no-cache-dir --ignore-installed blinker==1.7.0 \
     && pip install --no-cache-dir -r /app/requirements.txt
 
-# Create model cache folder
-RUN mkdir -p /app/models /tmp
+# Create cache directories
+RUN mkdir -p /tmp /app/models
 
 # Copy application code
 COPY services/fastapi/app /app/app
@@ -25,9 +25,18 @@ COPY services/fastapi/app /app/app
 ENV PYTHONUNBUFFERED=1
 ENV PIP_NO_CACHE_DIR=1
 ENV PORT=8080
+ENV PYTHONDONTWRITEBYTECODE=1
 
-# Expose port (Cloud Run will override this)
+# Non-root user for security
+RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app /tmp
+USER appuser
+
+# Expose port
 EXPOSE 8080
 
-# Run application with PORT from environment
-CMD exec uvicorn app.main:app --host 0.0.0.0 --port ${PORT}
+# Health check
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    CMD curl -f http://localhost:${PORT}/health || exit 1
+
+# Run with uvicorn (production-ready ASGI server)
+CMD exec uvicorn app.main:app --host 0.0.0.0 --port ${PORT} --workers 1 --log-level info

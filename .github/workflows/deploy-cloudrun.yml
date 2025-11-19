@@ -5,21 +5,25 @@ on:
     branches:
       - main
       - master
+  pull_request:
+    branches:
+      - main
+      - master
   workflow_dispatch:
 
 env:
-  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
-  SERVICE_NAME: tumorotak
-  REGION: asia-southeast2
+  GCP_PROJECT: ${{ secrets.GCP_PROJECT }}
+  GCP_REGION: ${{ secrets.GCP_REGION || 'us-west1' }}
+  ARTIFACT_REPO: ${{ secrets.ARTIFACT_REPO || 'tumorotak' }}
+  BACKEND_SERVICE: tumorotak-backend
+  FRONTEND_SERVICE: tumorotak-frontend
 
 jobs:
-  deploy:
-    name: Deploy to Cloud Run
+  build-and-deploy-backend:
+    name: Build & Deploy FastAPI Backend
     runs-on: ubuntu-latest
-
-    permissions:
-      contents: read
-      id-token: write
+    outputs:
+      backend_url: ${{ steps.deploy-backend.outputs.url }}
 
     steps:
       - name: Checkout code
@@ -32,45 +36,212 @@ jobs:
 
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ env.GCP_PROJECT }}
 
-      - name: Configure Docker for GCR
-        run: gcloud auth configure-docker
-
-      - name: Build Docker image
+      - name: Configure Docker for Artifact Registry
         run: |
-          docker build -t gcr.io/$PROJECT_ID/$SERVICE_NAME:$GITHUB_SHA \
-                       -t gcr.io/$PROJECT_ID/$SERVICE_NAME:latest .
+          gcloud auth configure-docker ${{ env.GCP_REGION }}-docker.pkg.dev
 
-      - name: Push Docker image
+      - name: Build Backend Docker Image
         run: |
-          docker push gcr.io/$PROJECT_ID/$SERVICE_NAME:$GITHUB_SHA
-          docker push gcr.io/$PROJECT_ID/$SERVICE_NAME:latest
+          IMAGE_NAME="${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT }}/${{ env.ARTIFACT_REPO }}/${{ env.BACKEND_SERVICE }}:${{ github.sha }}"
+          docker build -t $IMAGE_NAME -f Dockerfile .
+          docker tag $IMAGE_NAME "${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT }}/${{ env.ARTIFACT_REPO }}/${{ env.BACKEND_SERVICE }}:latest"
 
-      - name: Deploy to Cloud Run
+      - name: Push Backend Image to Artifact Registry
         run: |
-          gcloud run deploy $SERVICE_NAME \
-            --image gcr.io/$PROJECT_ID/$SERVICE_NAME:$GITHUB_SHA \
+          docker push "${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT }}/${{ env.ARTIFACT_REPO }}/${{ env.BACKEND_SERVICE }}:${{ github.sha }}"
+          docker push "${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT }}/${{ env.ARTIFACT_REPO }}/${{ env.BACKEND_SERVICE }}:latest"
+
+      - name: Deploy Backend to Cloud Run
+        id: deploy-backend
+        run: |
+          gcloud run deploy ${{ env.BACKEND_SERVICE }} \
+            --image "${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT }}/${{ env.ARTIFACT_REPO }}/${{ env.BACKEND_SERVICE }}:${{ github.sha }}" \
             --platform managed \
-            --region $REGION \
+            --region ${{ env.GCP_REGION }} \
             --allow-unauthenticated \
             --memory 2Gi \
             --cpu 2 \
             --timeout 300 \
             --max-instances 10 \
             --min-instances 0 \
-            --port 8080
-
-      - name: Get Service URL
-        id: get-url
-        run: |
-          SERVICE_URL=$(gcloud run services describe $SERVICE_NAME \
-            --region $REGION \
+            --port 8080 \
+            --set-env-vars "HF_REPO_ID=palawakampa/tumorotak,HF_FILENAME=brain_tumor.tflite,CORS_ORIGINS=*" \
+            --service-account="${{ secrets.GCP_SERVICE_ACCOUNT || 'default' }}"
+          
+          # Get service URL
+          SERVICE_URL=$(gcloud run services describe ${{ env.BACKEND_SERVICE }} \
+            --region ${{ env.GCP_REGION }} \
             --format 'value(status.url)')
-          echo "SERVICE_URL=$SERVICE_URL" >> $GITHUB_OUTPUT
-          echo "Service deployed at: $SERVICE_URL"
+          echo "url=$SERVICE_URL" >> $GITHUB_OUTPUT
+          echo "Backend deployed at: $SERVICE_URL"
 
-      - name: Test Deployment
+      - name: Test Backend Health
         run: |
-          sleep 10
-          curl -f ${{ steps.get-url.outputs.SERVICE_URL }}/health || exit 1
-          echo "Health check passed!"
+          sleep 15
+          BACKEND_URL="${{ steps.deploy-backend.outputs.url }}"
+          echo "Testing backend at: $BACKEND_URL/health"
+          
+          # Retry health check up to 5 times
+          for i in {1..5}; do
+            if curl -f "$BACKEND_URL/health"; then
+              echo "✅ Backend health check passed!"
+              exit 0
+            fi
+            echo "Attempt $i failed, retrying in 5s..."
+            sleep 5
+          done
+          
+          echo "❌ Backend health check failed after 5 attempts"
+          exit 1
+
+  build-and-deploy-frontend:
+    name: Build & Deploy Streamlit Frontend
+    runs-on: ubuntu-latest
+    needs: build-and-deploy-backend
+    if: success()
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ env.GCP_PROJECT }}
+
+      - name: Configure Docker for Artifact Registry
+        run: |
+          gcloud auth configure-docker ${{ env.GCP_REGION }}-docker.pkg.dev
+
+      - name: Build Frontend Docker Image
+        run: |
+          IMAGE_NAME="${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT }}/${{ env.ARTIFACT_REPO }}/${{ env.FRONTEND_SERVICE }}:${{ github.sha }}"
+          docker build -t $IMAGE_NAME -f Dockerfile.streamlit .
+          docker tag $IMAGE_NAME "${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT }}/${{ env.ARTIFACT_REPO }}/${{ env.FRONTEND_SERVICE }}:latest"
+
+      - name: Push Frontend Image to Artifact Registry
+        run: |
+          docker push "${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT }}/${{ env.ARTIFACT_REPO }}/${{ env.FRONTEND_SERVICE }}:${{ github.sha }}"
+          docker push "${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT }}/${{ env.ARTIFACT_REPO }}/${{ env.FRONTEND_SERVICE }}:latest"
+
+      - name: Deploy Frontend to Cloud Run
+        id: deploy-frontend
+        run: |
+          BACKEND_URL="${{ needs.build-and-deploy-backend.outputs.backend_url }}"
+          
+          gcloud run deploy ${{ env.FRONTEND_SERVICE }} \
+            --image "${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT }}/${{ env.ARTIFACT_REPO }}/${{ env.FRONTEND_SERVICE }}:${{ github.sha }}" \
+            --platform managed \
+            --region ${{ env.GCP_REGION }} \
+            --allow-unauthenticated \
+            --memory 1Gi \
+            --cpu 1 \
+            --timeout 300 \
+            --max-instances 5 \
+            --min-instances 0 \
+            --port 8080 \
+            --set-env-vars "API_URL=$BACKEND_URL" \
+            --service-account="${{ secrets.GCP_SERVICE_ACCOUNT || 'default' }}"
+          
+          # Get service URL
+          SERVICE_URL=$(gcloud run services describe ${{ env.FRONTEND_SERVICE }} \
+            --region ${{ env.GCP_REGION }} \
+            --format 'value(status.url)')
+          echo "url=$SERVICE_URL" >> $GITHUB_OUTPUT
+          echo "Frontend deployed at: $SERVICE_URL"
+
+      - name: Create Deployment Summary
+        run: |
+          BACKEND_URL="${{ needs.build-and-deploy-backend.outputs.backend_url }}"
+          FRONTEND_URL="${{ steps.deploy-frontend.outputs.url }}"
+          
+          echo "## 🚀 Deployment Successful!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Backend (FastAPI)" >> $GITHUB_STEP_SUMMARY
+          echo "- **URL**: $BACKEND_URL" >> $GITHUB_STEP_SUMMARY
+          echo "- **Health**: $BACKEND_URL/health" >> $GITHUB_STEP_SUMMARY
+          echo "- **API Docs**: $BACKEND_URL/docs" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Frontend (Streamlit)" >> $GITHUB_STEP_SUMMARY
+          echo "- **URL**: $FRONTEND_URL" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Test Commands" >> $GITHUB_STEP_SUMMARY
+          echo '```bash' >> $GITHUB_STEP_SUMMARY
+          echo "# Test backend health" >> $GITHUB_STEP_SUMMARY
+          echo "curl $BACKEND_URL/health" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "# Test prediction" >> $GITHUB_STEP_SUMMARY
+          echo "curl -X POST $BACKEND_URL/predict -F 'file=@test_image.jpg'" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+  comment-pr:
+    name: Comment on PR
+    runs-on: ubuntu-latest
+    needs: [build-and-deploy-backend, build-and-deploy-frontend]
+    if: github.event_name == 'pull_request' && success()
+    
+    steps:
+      - name: Comment PR with deployment info
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const backendUrl = '${{ needs.build-and-deploy-backend.outputs.backend_url }}';
+            const frontendUrl = '${{ needs.build-and-deploy-frontend.outputs.url }}';
+            
+            const comment = `## 🚀 Cloud Run Deployment Successful!
+            
+            ### 📡 Backend (FastAPI)
+            - **Service URL**: ${backendUrl}
+            - **Health Check**: ${backendUrl}/health
+            - **API Documentation**: ${backendUrl}/docs
+            
+            ### 🎨 Frontend (Streamlit)
+            - **Service URL**: ${frontendUrl}
+            
+            ### 🧪 Testing
+            
+            **Test Backend Health:**
+            \`\`\`bash
+            curl ${backendUrl}/health
+            \`\`\`
+            
+            **Test Prediction:**
+            \`\`\`bash
+            curl -X POST ${backendUrl}/predict -F "file=@test_image.jpg"
+            \`\`\`
+            
+            **Test Frontend:**
+            Open ${frontendUrl} in your browser and upload a brain scan image.
+            
+            ### ⚙️ Required GitHub Secrets
+            
+            Make sure these secrets are configured in your repository:
+            - \`GCP_PROJECT\` - Your GCP project ID
+            - \`GCP_SA_KEY\` - Service account JSON key (base64 encoded)
+            - \`GCP_REGION\` - Deployment region (default: us-west1)
+            - \`ARTIFACT_REPO\` - Artifact Registry repository name
+            - \`GCP_SERVICE_ACCOUNT\` - Service account email (optional)
+            
+            ### 📝 IAM Permissions Required
+            
+            The service account needs these roles:
+            - \`roles/run.admin\` - Deploy to Cloud Run
+            - \`roles/storage.admin\` - Push to Artifact Registry
+            - \`roles/iam.serviceAccountUser\` - Act as service account
+            - \`roles/storage.objectViewer\` - Read from GCS (if using MODEL_GCS_PATH)
+            `;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
